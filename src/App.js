@@ -61,13 +61,14 @@ class App extends Component {
       var days = duration.asDays();
       return (
         <tr key={i}>
-          <td className='left'>{c.name}</td>
-          <td className='right'>{c.volume.toFixed(2)}</td>
-          <td className='right'>£{c.gbpCost.toFixed(2)}</td>
+          <td className='left'><select><option value={c.name}>{c.name}</option></select></td>
+          <td className='right'><input type='number' value={c.volume.toFixed(2)} /></td>
+          <td className='right'>£<input type='number' value={c.gbpCost.toFixed(2)} /></td>
+          <td className='right'><input type='datetime-local' value='2017-06-17T08:30' /></td>
+          <td className='left'><input value={c.provider} /></td>
           <td className='right'>£{(currentValue).toFixed(2)}</td>
           <td className='right'>£{profit.toFixed(2)}</td>
           <td className='right'>{profitPct.toFixed(2)}%</td>
-          <td className='left'>{c.provider}</td>
           <td className='left'>{days.toFixed()} days</td>
         </tr>
       )
@@ -85,10 +86,11 @@ class App extends Component {
                 <th className='center'>Currency</th>
                 <th className='center'>Volume</th>
                 <th className='center'>Bought at</th>
+                <th className='center'>Date bought</th>
+                <th className='center'>Notes</th>
                 <th className='center'>Current value</th>
                 <th className='center'>Profit</th>
                 <th className='center'>Profit %</th>
-                <th className='center'>Provider</th>
                 <th className='center'>Age</th>
               </tr>
             </thead>

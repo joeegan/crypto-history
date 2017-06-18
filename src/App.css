@@ -16,11 +16,10 @@ table {
   display: block;
   margin: 0;
   border-collapse: collapse;
-  border-bottom: 1px dashed #dae1e9;
 }
 
-tr {
-  border-bottom: 1px dashed #dae1e9;
+thead tr {
+  border-bottom: 1px solid #dae1e9;
 }
 
 th, td {
