@@ -7,14 +7,15 @@ const find = (str, json) =>
 
 const personalData = [{
   name: 'IOTA',
+  ticker: 'IOTBTC',
   gbpCost: 30.8,
   volume: 100,
   provider: 'Bitfinex',
-  purchaseDate: '2017-6-16'
-,
+  purchaseDate: '2017-6-16',
 },
 {
   name: 'Ethereum',
+  ticker: 'ETHBTC',
   gbpCost: 60.00,
   volume: 0.21543515,
   provider: 'Coinbase',
@@ -26,27 +27,54 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
+      oneBtcInGbp: null,
       time: null,
       gbp: {
-        btc: null,
-        iota: null,
-        ethereum: null,
+        IOTA: null,
+        Ethereum: null,
       }
     };
   }
 
   componentDidMount() {
 
-    fetch(`https://api.coinmarketcap.com/v1/ticker/?convert=GBP&limit=10`).then(response => {
-      response.json().then(json => {
-        this.setState({
-          gbp: {
-            IOTA: find('IOTA', json),
-            Ethereum: find('Ethereum', json),
-          },
-          time: moment(new Date()).format('h:mm:ssa'),
+    const fetchFX = () => {
+      fetch(`https://api.coinmarketcap.com/v1/ticker/?convert=GBP&limit=10`).then(response => {
+        response.json().then(json => {
+          this.setState({
+            oneBtcInGbp: json.find(c => c.id === 'bitcoin').price_gbp,
+            time: moment(new Date()).format('h:mm:ssa'),
+          });
         });
       });
+    }
+
+    fetchFX();
+    setInterval(fetchFX, 20000);
+
+    personalData.map(d => d.ticker).forEach(ticker => {
+      const wss = new WebSocket('wss://api.bitfinex.com/ws/');
+      wss.onopen = () => {
+        wss.send(JSON.stringify({
+           event: 'subscribe',
+           channel: 'ticker',
+           pair: ticker,
+        }));
+        wss.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data[1] === 'hb' || typeof data[6] !== 'number') {
+            return;
+          }
+          const lastPrice = data[6];
+          const name = personalData.find(d => d.ticker === ticker).name;
+          console.log('lastPrice', lastPrice, 'name', name);
+          this.setState({
+            gbp: {
+              [name]: lastPrice * this.state.oneBtcInGbp,
+            },
+          });
+        }
+      }
     });
   }
 
@@ -54,9 +82,9 @@ class App extends Component {
     const rows = personalData.map((c, i) => {
       const currentValue = this.state.gbp[c.name] * [c.volume];
       const profit = currentValue - c.gbpCost;
-      const profitPct = profit / c.gbpCost * 199;
-      var now = moment(new Date()); //todays date
-      var end = moment(c.purchaseDate); // another date
+      const profitPct = profit / c.gbpCost * 100;
+      var now = moment(new Date());
+      var end = moment(c.purchaseDate);
       var duration = moment.duration(now.diff(end));
       var days = duration.asDays();
       return (
@@ -74,12 +102,12 @@ class App extends Component {
       )
     })
     return (
-      <div className="App">
-        <div className="App-header">
+      <div className='App'>
+        <div className='App-header'>
           <h2>Crypto trade history</h2>
-          <p>(Snapshot data only) provided by coinmarketcap.com @ {this.state.time}</p>
+          <p>Converted to GBP @ {this.state.time}</p>
         </div>
-        <div className="center-wrap">
+        <div className='center-wrap'>
           <table>
             <thead>
               <tr>

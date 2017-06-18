@@ -26,6 +26,27 @@ th, td {
   padding: 3px 10px;
 }
 
+select {
+  min-width: 100px;
+}
+input {
+  display: inline-block;
+  width: 50px;
+}
+
+input[type=datetime-local] {
+  width: 190px;
+}
+
+input::-webkit-inner-spin-button,
+input::-webkit-outer-spin-button {
+  opacity: 1;
+}
+input[type=datetime-local]::-webkit-inner-spin-button,
+input[type=datetime-local]::-webkit-calendar-picker-indicator {
+    opacity: 1;
+}
+
 .center-wrap {
   display: flex;
   align-items: center;
