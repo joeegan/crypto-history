@@ -26,6 +26,7 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
+      time: null,
       gbp: {
         btc: null,
         iota: null,
@@ -42,7 +43,8 @@ class App extends Component {
           gbp: {
             IOTA: find('IOTA', json),
             Ethereum: find('Ethereum', json),
-          }
+          },
+          time: moment(new Date()).format('h:mm:ssa'),
         });
       });
     });
@@ -59,39 +61,42 @@ class App extends Component {
       var days = duration.asDays();
       return (
         <tr key={i}>
-          <td>{c.name}</td>
-          <td>{c.volume}</td>
-          <td>£{c.gbpCost}</td>
-          <td>£{(currentValue).toFixed(2)}</td>
-          <td>£{profit.toFixed(2)}</td>
-          <td>{profitPct.toFixed(2)}%</td>
-          <td>{c.provider}</td>
-          <td>{days.toFixed()} days ago</td>
+          <td className='left'>{c.name}</td>
+          <td className='right'>{c.volume.toFixed(2)}</td>
+          <td className='right'>£{c.gbpCost.toFixed(2)}</td>
+          <td className='right'>£{(currentValue).toFixed(2)}</td>
+          <td className='right'>£{profit.toFixed(2)}</td>
+          <td className='right'>{profitPct.toFixed(2)}%</td>
+          <td className='left'>{c.provider}</td>
+          <td className='left'>{days.toFixed()} days</td>
         </tr>
       )
     })
     return (
       <div className="App">
         <div className="App-header">
-          <h2>My crypto-trade history</h2>
+          <h2>Crypto trade history</h2>
+          <p>(Snapshot data only) provided by coinmarketcap.com @ {this.state.time}</p>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Currency</th>
-              <th>Volume</th>
-              <th>Bought at</th>
-              <th>Current value</th>
-              <th>Profit</th>
-              <th>Profit %</th>
-              <th>Provider</th>
-              <th>Age</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows}
-          </tbody>
-        </table>
+        <div className="center-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th className='center'>Currency</th>
+                <th className='center'>Volume</th>
+                <th className='center'>Bought at</th>
+                <th className='center'>Current value</th>
+                <th className='center'>Profit</th>
+                <th className='center'>Profit %</th>
+                <th className='center'>Provider</th>
+                <th className='center'>Age</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows}
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   }
