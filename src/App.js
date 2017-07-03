@@ -1,21 +1,19 @@
 import React, { Component } from 'react';
 import './App.css';
 import moment from 'moment';
-
-const find = (str, json) =>
-  json.find(({ name }) => name === str).price_gbp;
+import io from 'socket.io-client';
 
 const personalData = [{
-  name: 'IOTA',
-  ticker: 'IOTBTC',
+  name: 'IOT',
+  ticker: 'IOT~BTC',
   gbpCost: 30.8,
   volume: 100,
   provider: 'Bitfinex',
   purchaseDate: '2017-6-16',
 },
 {
-  name: 'Ethereum',
-  ticker: 'ETHBTC',
+  name: 'ETH',
+  ticker: 'ETH~BTC',
   gbpCost: 60.00,
   volume: 0.21543515,
   provider: 'Coinbase',
@@ -27,60 +25,74 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      oneBtcInGbp: null,
+      oneBtcInGbp: 2000,
       time: null,
       gbp: {
-        IOTA: null,
-        Ethereum: null,
+        IOT: null,
+        ETH: null,
       }
     };
   }
 
   componentDidMount() {
 
-    const fetchFX = () => {
-      fetch(`https://api.coinmarketcap.com/v1/ticker/?convert=GBP&limit=10`).then(response => {
-        response.json().then(json => {
-          this.setState({
-            oneBtcInGbp: json.find(c => c.id === 'bitcoin').price_gbp,
-            time: moment(new Date()).format('h:mm:ssa'),
-          });
+    // Stream BTC/GBP exchange rate for conversion usage
+    var socket = io.connect('https://streamer.cryptocompare.com/');
+    socket.emit('SubAdd', { subs: ['5~CCCAGG~BTC~GBP'] });
+    socket.on('m', message => {
+      const msg = message.split('~');
+      const responseTicker = `${msg[2]}~${msg[3]}`;
+      const price = msg[5];
+      const subscriptionId = msg[0];
+      if (price && subscriptionId === '5' && responseTicker === 'BTC~GBP') {
+        this.setState({
+          oneBtcInGbp: price,
         });
-      });
-    }
-
-    fetchFX();
-    setInterval(fetchFX, 20000);
-
-    personalData.map(d => d.ticker).forEach(ticker => {
-      const wss = new WebSocket('wss://api.bitfinex.com/ws/');
-      wss.onopen = () => {
-        wss.send(JSON.stringify({
-           event: 'subscribe',
-           channel: 'ticker',
-           pair: ticker,
-        }));
-        wss.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          if (data[1] === 'hb' || typeof data[6] !== 'number') {
-            return;
-          }
-          const lastPrice = data[6];
-          const name = personalData.find(d => d.ticker === ticker).name;
-          console.log('lastPrice', lastPrice, 'name', name);
-          this.setState({
-            gbp: {
-              [name]: lastPrice * this.state.oneBtcInGbp,
-            },
-          });
-        }
       }
     });
+
+    // Stream portfolio relevant currencies agaisnt BTC
+    personalData.map(d => d.ticker).forEach(ticker => {
+      socket.emit('SubAdd', { subs: ['5~CCCAGG~' + ticker] });
+      socket.on('m', msg => {
+        const [
+          subscriptionId,
+          exchangeName,
+          fromCurrency,
+          toCurrency,
+          flag,
+          price,
+          lastUpdate,
+          lastVolume,
+          lastVolumeTo,
+          lastTradeId,
+          volume24h,
+          volume24hTo,
+          lastMarket,
+        ] = msg.split('~');
+        const responseTicker = `${fromCurrency}~${toCurrency}`;
+        if (subscriptionId === '5' && responseTicker === ticker) {
+          // console.log(ticker, price);
+          this.updatePrice(fromCurrency, price)
+        }
+      });
+
+    });
+
+  }
+
+  updatePrice(fromCurrency, price) {
+   this.setState({
+     gbp: Object.assign({}, this.state.gbp, {
+       [fromCurrency]: this.state.oneBtcInGbp / price,
+     }),
+   });
   }
 
   render() {
     const rows = personalData.map((c, i) => {
-      const currentValue = this.state.gbp[c.name] * [c.volume];
+      // console.log(this.state.gbp)
+      const currentValue = this.state.gbp[c.name] ? this.state.gbp[c.name] : 1; // * [c.volume];
       const profit = currentValue - c.gbpCost;
       const profitPct = profit / c.gbpCost * 100;
       var now = moment(new Date());
@@ -94,7 +106,7 @@ class App extends Component {
           <td className='right'>£<input type='number' value={c.gbpCost.toFixed(2)} /></td>
           <td className='right'><input type='datetime-local' value='2017-06-17T08:30' /></td>
           <td className='left'><input value={c.provider} /></td>
-          <td className='right'>£{(currentValue).toFixed(2)}</td>
+          <td className='right'>£{(currentValue)}</td>
           <td className='right'>£{profit.toFixed(2)}</td>
           <td className='right'>{profitPct.toFixed(2)}%</td>
           <td className='left'>{days.toFixed()} days</td>
